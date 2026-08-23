@@ -50,6 +50,10 @@ st.markdown("""
         padding: 1rem;
         border-radius: 0 8px 8px 0;
         margin: 1rem 0;
+        color: #000000 !important;
+    }
+    .info-box strong, .info-box * {
+        color: #000000 !important;
     }
     .warning-box {
         background-color: #fffaf0;
@@ -57,6 +61,10 @@ st.markdown("""
         padding: 1rem;
         border-radius: 0 8px 8px 0;
         margin: 1rem 0;
+        color: #000000 !important;
+    }
+    .warning-box strong, .warning-box * {
+        color: #000000 !important;
     }
     .stSelectbox label, .stNumberInput label {
         font-weight: 600;
