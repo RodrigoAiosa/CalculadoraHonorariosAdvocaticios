@@ -3,7 +3,13 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from datetime import datetime
-from data.tabela_oab_sp_2016 import TABELA, SERVICOS_LISTA, FATOR_CORRECAO_2016_2026, CLAUSULAS_MODELO
+try:
+    from data.tabela_oab_sp_2016 import TABELA, SERVICOS_LISTA, FATOR_CORRECAO_2016_2026, CLAUSULAS_MODELO
+except ImportError:
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from data.tabela_oab_sp_2016 import TABELA, SERVICOS_LISTA, FATOR_CORRECAO_2016_2026, CLAUSULAS_MODELO
 
 st.set_page_config(page_title='Calculadora de Honorarios OAB', page_icon='⚖️', layout='wide', initial_sidebar_state='expanded')
 
@@ -23,29 +29,67 @@ st.markdown('''
 def fmt_brl(v):
     return f'R$ {v:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
 
+def _ascii_safe(text):
+    """Remove acentos e caracteres nao suportados pelo Helvetica do FPDF."""
+    if text is None:
+        return ""
+    s = str(text)
+    repl = {
+        "á": "a", "à": "a", "ã": "a", "â": "a", "ä": "a",
+        "é": "e", "è": "e", "ê": "e", "ë": "e",
+        "í": "i", "ì": "i", "î": "i", "ï": "i",
+        "ó": "o", "ò": "o", "õ": "o", "ô": "o", "ö": "o",
+        "ú": "u", "ù": "u", "û": "u", "ü": "u",
+        "ç": "c", "ñ": "n",
+        "Á": "A", "À": "A", "Ã": "A", "Â": "A", "Ä": "A",
+        "É": "E", "È": "E", "Ê": "E", "Ë": "E",
+        "Í": "I", "Ì": "I", "Î": "I", "Ï": "I",
+        "Ó": "O", "Ò": "O", "Õ": "O", "Ô": "O", "Ö": "O",
+        "Ú": "U", "Ù": "U", "Û": "U", "Ü": "U",
+        "Ç": "C", "Ñ": "N",
+        "–": "-", "—": "-", "•": "-", "·": "-",
+        "R$": "R$", "º": "o", "ª": "a",
+    }
+    for a, b in repl.items():
+        s = s.replace(a, b)
+    return s.encode("latin-1", errors="replace").decode("latin-1")
+
+
 def gerar_pdf_proposta(dados):
+    """Gera PDF simples. Retorna bytes vazios se falhar (nao quebra a app)."""
     try:
         from fpdf import FPDF
     except ImportError:
-        return b''
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font('Helvetica', 'B', 16)
-    pdf.cell(0, 10, 'Proposta de Honorarios Advocaticios', ln=True, align='C')
-    pdf.set_font('Helvetica', '', 10)
-    pdf.cell(0, 8, f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=True, align='C')
-    pdf.ln(6)
-    pdf.set_font('Helvetica', 'B', 12)
-    pdf.cell(0, 8, 'Dados do calculo', ln=True)
-    pdf.set_font('Helvetica', '', 10)
-    for k, v in dados.items():
-        pdf.multi_cell(0, 6, f'{k}: {v}')
-    pdf.ln(4)
-    pdf.set_font('Helvetica', '', 9)
-    pdf.multi_cell(0, 5, 'Valores orientativos. Formalize por contrato escrito. Sucumbencia pertence ao advogado.')
-    out = BytesIO()
-    pdf.output(out)
-    return out.getvalue()
+        return b""
+    try:
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+        pdf.set_margins(15, 15, 15)
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, _ascii_safe("Proposta de Honorarios Advocaticios"), ln=True, align="C")
+        pdf.set_font("Helvetica", "", 10)
+        pdf.cell(0, 8, _ascii_safe(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}"), ln=True, align="C")
+        pdf.ln(6)
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, _ascii_safe("Dados do calculo"), ln=True)
+        pdf.set_font("Helvetica", "", 10)
+        usable = pdf.w - pdf.l_margin - pdf.r_margin
+        for k, v in dados.items():
+            line = _ascii_safe(f"{k}: {v}")
+            pdf.multi_cell(usable, 6, line)
+        pdf.ln(4)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.multi_cell(usable, 5, _ascii_safe(
+            "Valores orientativos com base na tabela OAB e criterios de mercado. "
+            "Formalize sempre por contrato escrito (art. 41 do Codigo de Etica da OAB). "
+            "Honorarios de sucumbencia pertencem ao advogado e nao excluem os contratados."
+        ))
+        out_buf = BytesIO()
+        pdf.output(out_buf)
+        return out_buf.getvalue()
+    except Exception:
+        return b""
 
 with st.sidebar:
     st.markdown('### ⚖️ Menu')
@@ -141,7 +185,11 @@ if pagina == 'Calculadora Principal':
             parcelas_txt = f'{n}x de {fmt_brl(parc)}'; st.write(f'- **{n}x** de **{fmt_brl(parc)}**')
         st.markdown('---')
         dados_pdf = {'Modelo': modelo, 'Servico': serv['servico'], 'Categoria': serv['categoria'], 'Valor base': fmt_brl(valor_base), 'Complexidade': complexidade, 'Honorarios': fmt_brl(valor_final), 'Parcelamento': forma, 'Detalhe': parcelas_txt}
-        pdf_bytes = gerar_pdf_proposta(dados_pdf)
+        pdf_bytes = b''
+        try:
+            pdf_bytes = gerar_pdf_proposta(dados_pdf) or b''
+        except Exception:
+            pdf_bytes = b''
         if pdf_bytes:
             st.download_button('Baixar Proposta em PDF', data=pdf_bytes, file_name=f"proposta_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf", mime='application/pdf')
         texto_prop = f"PROPOSTA\nServico: {serv['servico']}\nModelo: {modelo}\nBase: {fmt_brl(valor_base)}\nHonorarios: {fmt_brl(valor_final)}\n{forma}: {parcelas_txt}\n"
