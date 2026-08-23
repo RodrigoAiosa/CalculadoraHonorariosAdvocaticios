@@ -102,6 +102,12 @@ with st.sidebar:
 
 # ===== CALCULADORA PRINCIPAL =====
 if pagina == 'Calculadora Principal':
+    # Capa do projeto (arquivo knuqP.jpg na raiz do repositorio)
+    try:
+        st.image('knuqP.jpg', use_container_width=True)
+    except Exception:
+        pass
+
     st.markdown('<p class="main-header">Calculadora de Honorarios Advocatícios</p>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Tabela OAB · Percentual · Fixo · Hora · Exito · Misto</p>', unsafe_allow_html=True)
     st.markdown('<div class="warning-box"><strong>Aviso:</strong> Valores orientativos. Formalize por contrato escrito. Sucumbencia nao exclui honorarios contratados.</div>', unsafe_allow_html=True)
