@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from datetime import datetime
+from esconder_selo import esconder_selo_streamlit
 try:
     from data.tabela_oab_sp_2016 import TABELA, SERVICOS_LISTA, FATOR_CORRECAO_2016_2026, CLAUSULAS_MODELO
 except ImportError:
@@ -12,6 +13,7 @@ except ImportError:
     from data.tabela_oab_sp_2016 import TABELA, SERVICOS_LISTA, FATOR_CORRECAO_2016_2026, CLAUSULAS_MODELO
 
 st.set_page_config(page_title='Calculadora de Honorarios OAB', page_icon='⚖️', layout='wide', initial_sidebar_state='expanded')
+esconder_selo_streamlit()  # oculta os controles do Streamlit Cloud
 
 st.markdown('''
 <style>
