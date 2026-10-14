@@ -1,0 +1,8 @@
+# Deploy estático na Vercel: publica só o index.html e a imagem de capa.
+# O app Streamlit (app.py) continua no repositório, mas fica fora do deploy
+# para a Vercel não tentar tratá-lo como função Python.
+app.py
+esconder_selo.py
+requirements.txt
+data/
+.streamlit/

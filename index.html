@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora de Honorários Advocatícios</title>
+<meta name="description" content="Calculadora de honorários advocatícios: Tabela OAB, percentual, fixo, hora técnica, êxito, misto, sucumbência (art. 85 CPC), custo da hora e cláusulas contratuais.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<style>
+:root{
+  --navy:#14284b; --navy-2:#1e3a6b; --blue:#2b6cb0; --gold:#b8893b; --gold-soft:#f5ead6;
+  --bg:#f6f4ef; --surface:#ffffff; --surface-2:#faf8f4; --text:#1b2333; --muted:#5b6475;
+  --line:#e4dfd4; --info:#ebf4ff; --info-line:#3182ce; --warn:#fff6e8; --warn-line:#dd6b20;
+  --ok:#e9f7ef; --ok-line:#2f855a; --radius:14px; --shadow:0 1px 2px rgba(20,40,75,.06),0 8px 24px rgba(20,40,75,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:Fraunces,Georgia,serif;color:var(--navy);margin:0 0 .5rem;line-height:1.2}
+h1{font-size:clamp(1.5rem,3vw,2.1rem)} h2{font-size:1.3rem} h3{font-size:1.08rem}
+a{color:var(--blue)}
+
+/* Layout */
+.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+aside{background:var(--navy);color:#e8edf6;padding:1.4rem 1rem;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{display:flex;gap:.6rem;align-items:center;margin-bottom:1.4rem;padding:0 .4rem}
+.brand .seal{width:38px;height:38px;border-radius:50%;background:var(--gold);display:grid;place-items:center;font-size:1.2rem;flex:none}
+.brand b{font-family:Fraunces,serif;font-size:1.02rem;color:#fff;line-height:1.2}
+nav button{display:flex;width:100%;align-items:center;gap:.6rem;background:none;border:0;color:#c9d3e6;font:inherit;font-size:.93rem;text-align:left;padding:.62rem .75rem;border-radius:10px;cursor:pointer;margin-bottom:2px}
+nav button:hover{background:rgba(255,255,255,.07);color:#fff}
+nav button.active{background:rgba(184,137,59,.2);color:#fff;box-shadow:inset 3px 0 0 var(--gold)}
+.side-opts{border-top:1px solid rgba(255,255,255,.12);margin-top:1.2rem;padding:1rem .4rem 0;font-size:.85rem;color:#c9d3e6}
+.side-opts label{display:flex;gap:.5rem;align-items:flex-start;cursor:pointer}
+.side-opts small{display:block;margin-top:.5rem;color:#93a1bb}
+main{padding:1.6rem clamp(1rem,3vw,2.4rem) 3rem;max-width:1180px;width:100%}
+.mobile-bar{display:none}
+
+/* Components */
+.cover{width:100%;aspect-ratio:2096/496;object-fit:cover;border-radius:var(--radius);display:block;margin-bottom:1.2rem;box-shadow:var(--shadow)}
+.page-head{text-align:center;margin-bottom:1.1rem}
+.page-head p{color:var(--muted);margin:.2rem 0 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.grid-2{display:grid;grid-template-columns:1.15fr 1fr;gap:1.2rem;align-items:start}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.stack>*+*{margin-top:1rem}
+.note{padding:.85rem 1rem;border-radius:0 10px 10px 0;margin:.9rem 0;font-size:.92rem}
+.note.info{background:var(--info);border-left:4px solid var(--info-line)}
+.note.warn{background:var(--warn);border-left:4px solid var(--warn-line)}
+.note.ok{background:var(--ok);border-left:4px solid var(--ok-line)}
+hr{border:0;border-top:1px solid var(--line);margin:1.1rem 0}
+
+.field{margin-bottom:.85rem}
+.field>label,.lbl{display:block;font-size:.84rem;font-weight:600;color:var(--navy);margin-bottom:.32rem}
+input[type=text],input[type=number],select,textarea{width:100%;font:inherit;font-size:.95rem;padding:.6rem .7rem;border:1px solid #d6d0c3;border-radius:10px;background:var(--surface-2);color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:2px solid rgba(43,108,176,.35);border-color:var(--blue);background:#fff}
+textarea{resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.86rem}
+.range-row{display:flex;gap:.8rem;align-items:center}
+.range-row input[type=range]{flex:1;accent-color:var(--navy)}
+.range-row output{min-width:4.2rem;text-align:right;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
+
+.chips{display:flex;flex-wrap:wrap;gap:.45rem;margin:.3rem 0 1rem}
+.chips button{font:inherit;font-size:.86rem;padding:.48rem .85rem;border-radius:999px;border:1px solid #d6d0c3;background:var(--surface);cursor:pointer;color:var(--text)}
+.chips button.active{background:var(--navy);border-color:var(--navy);color:#fff}
+
+.result{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 55%,var(--blue) 100%);color:#fff;padding:1.4rem;border-radius:var(--radius);text-align:center;margin:.4rem 0 1rem;position:relative;overflow:hidden}
+.result::after{content:"";position:absolute;inset:auto -40px -60px auto;width:160px;height:160px;border-radius:50%;border:18px solid rgba(184,137,59,.25)}
+.result .k{opacity:.88;font-size:.92rem}
+.result .v{font-family:Fraunces,serif;font-size:clamp(1.9rem,4vw,2.5rem);font-weight:700;font-variant-numeric:tabular-nums;margin:.15rem 0}
+.result .s{font-size:.84rem;opacity:.82}
+.result .v2{font-family:Fraunces,serif;font-size:1.6rem;font-weight:700}
+
+dl.kv{display:grid;grid-template-columns:auto 1fr;gap:.35rem 1rem;margin:0;font-size:.93rem}
+dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+ul.parc{list-style:none;padding:0;margin:.5rem 0}
+ul.parc li{display:flex;justify-content:space-between;padding:.45rem 0;border-bottom:1px dashed var(--line);font-size:.93rem}
+ul.parc li b{font-variant-numeric:tabular-nums}
+
+.btn{display:inline-flex;align-items:center;gap:.4rem;font:inherit;font-weight:600;font-size:.9rem;padding:.62rem 1rem;border-radius:10px;border:1px solid var(--navy);background:var(--navy);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--navy)}
+.btn:hover{filter:brightness(1.1)}
+.btn-row{display:flex;flex-wrap:wrap;gap:.5rem}
+
+.metric{background:var(--gold-soft);border-radius:10px;padding:.7rem .9rem;margin-top:.6rem}
+.metric span{display:block;font-size:.8rem;color:var(--muted)}
+.metric b{font-family:Fraunces,serif;font-size:1.3rem;color:var(--navy);font-variant-numeric:tabular-nums}
+.scen.best{outline:2px solid var(--gold)}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{padding:.55rem .6rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:var(--surface-2)}
+td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+details{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:.7rem;overflow:hidden}
+summary{cursor:pointer;padding:.85rem 1rem;font-weight:600;color:var(--navy);list-style:none;display:flex;justify-content:space-between}
+summary::after{content:"+";font-weight:700;color:var(--gold)}
+details[open] summary::after{content:"–"}
+details .table-wrap{padding:0 .4rem .6rem}
+.muted{color:var(--muted);font-size:.85rem}
+.page{display:none} .page.active{display:block}
+footer{margin-top:2.2rem;text-align:center;color:var(--muted);font-size:.8rem}
+
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  aside{display:none}
+  .mobile-bar{display:block;position:sticky;top:0;z-index:10;background:var(--navy);padding:.7rem 16px}
+  .mobile-bar .row{display:flex;align-items:center;gap:.6rem;color:#fff;font-family:Fraunces,serif;font-weight:700}
+  .mobile-bar select{margin-top:.5rem;background:#20365f;color:#fff;border-color:#34507f}
+  .mobile-bar label{display:flex;gap:.45rem;align-items:center;color:#c9d3e6;font-size:.82rem;margin-top:.45rem}
+  main{padding:1rem 16px 2.5rem}
+  .grid-2,.grid-3{grid-template-columns:1fr}
+}
+@media print{aside,.mobile-bar,.btn,.btn-row{display:none!important}.app{display:block}}
+</style>
+</head>
+<body>
+<div class="mobile-bar">
+  <div class="row"><span>⚖️</span> Honorários Advocatícios</div>
+  <select id="navMobile" aria-label="Seção"></select>
+  <label><input type="checkbox" id="corrMobile" checked> Correção 2016→2026 (×1,75)</label>
+</div>
+
+<div class="app">
+  <aside>
+    <div class="brand"><div class="seal">⚖️</div><b>Calculadora de Honorários</b></div>
+    <nav id="nav"></nav>
+    <div class="side-opts">
+      <label><input type="checkbox" id="corr" checked> Aplicar correção 2016→2026 (×1,75)</label>
+      <small>Fator atual: <b id="fatorLbl">1,75</b></small>
+      <small>Base: OAB/SP 2016 + mercado 2025/2026</small>
+    </div>
+  </aside>
+
+  <main>
+    <!-- ===== CALCULADORA PRINCIPAL ===== -->
+    <section class="page" id="p-calc">
+      <img class="cover" src="knuqP.jpg" alt="Calculadora de Honorários Advocatícios" onerror="this.remove()">
+      <div class="page-head">
+        <h1>Calculadora de Honorários Advocatícios</h1>
+        <p>Tabela OAB · Percentual · Fixo · Hora · Êxito · Misto</p>
+      </div>
+      <div class="note warn"><strong>Aviso:</strong> valores orientativos. Formalize por contrato escrito. Sucumbência não exclui honorários contratados.</div>
+
+      <span class="lbl">Modelo de precificação</span>
+      <div class="chips" id="modelos"></div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>1. Serviço e base</h2>
+          <div class="field"><label for="cat">Categoria</label><select id="cat"></select></div>
+          <div class="field"><label for="busca">Buscar serviço</label><input type="text" id="busca" placeholder="Ex.: inventário, despejo…"></div>
+          <div class="field"><label for="serv">Serviço / Procedimento</label><select id="serv"></select></div>
+          <hr>
+          <h2>2. Dados do cálculo</h2>
+          <div class="field"><label for="valorBase">Valor da causa / proveito econômico (R$)</label><input type="number" id="valorBase" min="0" step="500" value="50000"></div>
+          <div id="modeloFields"></div>
+          <hr>
+          <div class="field">
+            <label for="complex">Fator de complexidade / urgência</label>
+            <select id="complex">
+              <option value="0.8">Baixa (0,8x)</option>
+              <option value="1" selected>Normal (1,0x)</option>
+              <option value="1.3">Alta (1,3x)</option>
+              <option value="1.6">Muito alta (1,6x)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Resultado</h2>
+          <div class="result">
+            <div class="k">Honorários sugeridos</div>
+            <div class="v" id="resValor">R$ 0,00</div>
+            <div class="s" id="resSub"></div>
+          </div>
+          <h3>Detalhamento</h3>
+          <dl class="kv" id="detalhe"></dl>
+          <div id="obs"></div>
+          <hr>
+          <h3>Parcelamento sugerido</h3>
+          <div class="field">
+            <label for="forma">Forma</label>
+            <select id="forma">
+              <option>1/3 + 1/3 + 1/3</option>
+              <option>50% início + 50% final</option>
+              <option>30% + 40% + 30%</option>
+              <option>À vista</option>
+              <option>Personalizado</option>
+            </select>
+          </div>
+          <div class="field" id="nParcWrap" hidden><label for="nParc">Nº de parcelas</label><input type="number" id="nParc" min="2" max="24" value="3"></div>
+          <ul class="parc" id="parcelas"></ul>
+          <hr>
+          <div class="btn-row">
+            <button class="btn" id="btnPdf">Baixar proposta em PDF</button>
+            <button class="btn ghost" id="btnTxt">Baixar proposta (TXT)</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CUSTO REAL DA HORA ===== -->
+    <section class="page" id="p-hora">
+      <div class="page-head"><h1>Custo Real da Hora do Escritório</h1><p>Preço mínimo para não trabalhar no prejuízo</p></div>
+      <div class="grid-2">
+        <div class="card">
+          <h2>Custos mensais</h2>
+          <div class="field"><label>Aluguel / coworking (R$)</label><input type="number" class="h-in" id="h_aluguel" min="0" step="100" value="2000"></div>
+          <div class="field"><label>Softwares / internet (R$)</label><input type="number" class="h-in" id="h_soft" min="0" step="50" value="500"></div>
+          <div class="field"><label>Anuidade OAB + seguro (mensal)</label><input type="number" class="h-in" id="h_oab" min="0" step="10" value="150"></div>
+          <div class="field"><label>Contador / administrativo (R$)</label><input type="number" class="h-in" id="h_cont" min="0" step="50" value="400"></div>
+          <div class="field"><label>Outros custos fixos (R$)</label><input type="number" class="h-in" id="h_out" min="0" step="50" value="300"></div>
+          <div class="field"><label>Pró-labore desejado (R$)</label><input type="number" class="h-in" id="h_pro" min="0" step="500" value="8000"></div>
+        </div>
+        <div class="card">
+          <h2>Capacidade produtiva</h2>
+          <div class="field"><label>Horas totais no mês</label><input type="number" class="h-in" id="h_horas" min="1" step="8" value="160"></div>
+          <div class="field"><label>% de horas faturáveis</label><div class="range-row"><input type="range" class="h-in" id="h_pct" min="30" max="80" step="1" value="55"><output id="h_pct_o"></output></div></div>
+          <div class="field"><label>Margem de lucro (%)</label><div class="range-row"><input type="range" class="h-in" id="h_margem" min="0" max="50" step="1" value="20"><output id="h_margem_o"></output></div></div>
+          <div class="result">
+            <div class="k">Custo real da hora</div>
+            <div class="v" id="h_custo"></div>
+            <div class="k" style="margin-top:.5rem">Preço sugerido (com margem)</div>
+            <div class="v2" id="h_preco"></div>
+          </div>
+          <dl class="kv">
+            <dt>Custo mensal total</dt><dd id="h_total"></dd>
+            <dt>Horas faturáveis/mês</dt><dd id="h_fat"></dd>
+          </dl>
+          <p class="muted" style="margin-top:.8rem">Use este valor no modelo “Por hora técnica”. <button class="btn ghost" id="usarHora" style="padding:.3rem .6rem;font-size:.8rem;margin-left:.3rem">Usar na calculadora</button></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CENÁRIOS ===== -->
+    <section class="page" id="p-cen">
+      <div class="page-head"><h1>Comparar Cenários de Precificação</h1><p>Até 3 modelos lado a lado sobre a mesma base</p></div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="field" style="margin:0"><label for="cenBase">Valor da causa / proveito (R$)</label><input type="number" id="cenBase" min="0" step="1000" value="100000"></div>
+      </div>
+      <div class="grid-3" id="cenarios"></div>
+      <div class="card" style="margin-top:1rem">
+        <div class="table-wrap"><table><thead><tr><th>Cenário</th><th>Tipo</th><th style="text-align:right">Valor</th></tr></thead><tbody id="cenTable"></tbody></table></div>
+        <div class="note ok" id="cenMelhor"></div>
+      </div>
+    </section>
+
+    <!-- ===== SUCUMBÊNCIA ===== -->
+    <section class="page" id="p-suc">
+      <div class="page-head"><h1>Honorários de Sucumbência – art. 85 CPC</h1></div>
+      <div class="note info"><strong>Base legal:</strong> Art. 85, §2º do CPC – 10% a 20% sobre a condenação, o proveito econômico ou o valor atualizado da causa.</div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="field"><label for="sucBase">Base de cálculo (R$)</label><input type="number" id="sucBase" min="0" step="500" value="80000"></div>
+          <div class="field"><label>Percentual de sucumbência (%)</label><div class="range-row"><input type="range" id="sucPct" min="10" max="20" step="0.5" value="15"><output id="sucPctO"></output></div></div>
+          <label style="display:flex;gap:.5rem;align-items:center;font-size:.92rem;cursor:pointer"><input type="checkbox" id="sucMaj"> Majoração em grau recursal (ilustrativo, +5 p.p., teto 25%)</label>
+        </div>
+        <div class="card">
+          <div class="result">
+            <div class="k">Honorários de sucumbência estimados</div>
+            <div class="v" id="sucValor"></div>
+            <div class="s" id="sucSub"></div>
+          </div>
+          <p class="muted">A sucumbência pertence ao advogado e é cumulativa com os honorários contratuais.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TABELA ===== -->
+    <section class="page" id="p-tab">
+      <div class="page-head"><h1>Tabela de Honorários (referência)</h1><p id="tabCaption"></p></div>
+      <div id="tabela"></div>
+    </section>
+
+    <!-- ===== CLÁUSULAS ===== -->
+    <section class="page" id="p-cla">
+      <div class="page-head"><h1>Cláusulas Contratuais – Modelo</h1></div>
+      <div class="card">
+        <div class="field"><label for="claValor">Valor dos honorários (R$)</label><input type="number" id="claValor" min="0" step="500" value="10000"></div>
+        <div class="field"><label for="claParc">Descrição do parcelamento</label><textarea id="claParc" rows="2" style="font-family:inherit">1/3 no início, 1/3 até decisão de 1º grau e 1/3 no final.</textarea></div>
+        <div class="field"><label for="claTexto">Modelo de cláusulas</label><textarea id="claTexto" rows="20" readonly></textarea></div>
+        <div class="btn-row">
+          <button class="btn" id="claTxt">Baixar cláusulas (TXT)</button>
+          <button class="btn ghost" id="claCopy">Copiar texto</button>
+        </div>
+        <div class="note info">Modelo genérico. Adapte conforme o Código de Ética da OAB.</div>
+      </div>
+    </section>
+
+    <!-- ===== SOBRE ===== -->
+    <section class="page" id="p-sobre">
+      <div class="page-head"><h1>Sobre esta Calculadora</h1></div>
+      <div class="grid-2">
+        <div class="card">
+          <h2>Funcionalidades</h2>
+          <ul>
+            <li>Modelos: Tabela OAB, Percentual, Fixo, Hora, Êxito, Misto</li>
+            <li>Custo real da hora (break-even + margem)</li>
+            <li>Comparação de até 3 cenários</li>
+            <li>Sucumbência (art. 85 CPC)</li>
+            <li>Correção 2016 → 2026 e fator de complexidade</li>
+            <li>Parcelamentos flexíveis e exportação PDF/TXT</li>
+            <li>Cláusulas contratuais modelo</li>
+            <li>Categorias: Cível, Família, Trabalhista, Previdenciário, Criminal, Empresarial, Digital</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h2>Base legal</h2>
+          <ul>
+            <li>Lei 8.906/1994, arts. 22, 23 e 58, V</li>
+            <li>Código de Ética da OAB, arts. 36 e 41</li>
+            <li>CPC, art. 85</li>
+          </ul>
+          <div class="note warn">Valores orientativos. Formalize por contrato escrito.</div>
+        </div>
+      </div>
+    </section>
+
+    <footer>Base: OAB/SP 2016 + referências de mercado 2025/2026 · Valores orientativos</footer>
+  </main>
+</div>
+
+<script>
+/* ===================== DADOS ===================== */
+const FATOR_CORRECAO_2016_2026 = 1.75;
+const TABELA = {
+  "Parte Geral": [
+    ["1","Ações de jurisdição contenciosa (geral)",20,3991.07,"20% sobre valor econômico. Mínimo haja ou não benefício patrimonial."],
+    ["2a","Recursos - Interposição",null,1995.55,"Mandatário constituído ou substabelecido"],
+    ["2b","Recursos - Contra-razões",null,1995.55,""],
+    ["2c","Recursos - Memoriais",null,1995.55,""],
+    ["2d","Recursos - Sustentação oral",null,3991.07,"Outra cidade: mínimo dobrado + despesas"],
+    ["2e","Recursos - Acompanhamento simples",null,1197.33,""],
+    ["3","Exame de processos em geral",null,581.23,""],
+    ["4","Prestação de serviços em audiência",null,798.21,""],
+    ["5a","Precatórias - Citação/intimação",null,968.71,""],
+    ["5b","Precatórias - Outros fins",null,1356.19,""],
+    ["6","Advocacia de partido (mensal)",null,1995.55,"Sem vínculo empregatício"]
+  ],
+  "Advocacia Cível": [
+    ["7","Medidas cautelares / tutela de urgência",null,2324.91,""],
+    ["8","Ação de despejo (ordinária)",20,3991.07,"20% sobre aluguel de 1 ano"],
+    ["9","Despejo + cobrança de aluguéis",15,1995.55,""],
+    ["10","Revisão / arbitramento de aluguel",20,3991.07,""],
+    ["12a","Possessórias - Manutenção/reintegração",20,3991.07,"20% sobre valor da coisa"],
+    ["12b","Possessórias - Interdito proibitório",10,3991.07,""],
+    ["15","Usucapião",20,3991.07,"20% do valor do bem"],
+    ["18","Desapropriação direta",10,4843.54,"10% sobre diferença oferta x indenização"],
+    ["20","Ação monitória",20,1937.42,""],
+    ["25","Mandado de segurança",20,3991.07,"10% a 20% sobre proveito"],
+    ["34","Juizados Especiais Cíveis",20,1197.33,""],
+    ["C1","Procedimento ordinário / comum",20,4060.80,"Ref. tabelas recentes ~R$ 6.256 (2026)"],
+    ["C2","Execução / cumprimento de sentença",20,2256.00,""],
+    ["C3","Embargos à execução / impugnação",20,2256.00,""]
+  ],
+  "Família e Sucessões": [
+    ["35","Inventário/arrolamento (todos herdeiros)",6,3991.07,"6% sobre monte-mor"],
+    ["35b","Inventário - meeiro/herdeiro/legatário",6,1995.55,"6% sobre quinhão"],
+    ["36","Habilitação de crédito em inventário",20,1995.55,""],
+    ["39","Separação/divórcio consensual (sem bens)",null,1995.55,""],
+    ["40","Separação/divórcio judicial (com bens)",6,3991.07,"Critério de inventário"],
+    ["44","Investigação de paternidade",20,3991.07,""],
+    ["45","Ação de alimentos",20,3991.07,""],
+    ["46","Regulamentação de visitas / guarda",null,2500.00,"Referência de mercado"],
+    ["47","União estável (reconhecimento/dissolução)",6,3991.07,""]
+  ],
+  "Trabalhista": [
+    ["T1","Reclamação trabalhista (reclamante)",20,3000.00,"Prática: 15% a 30% sobre proveito"],
+    ["T2","Defesa trabalhista (reclamado)",null,4000.00,"Valor fixo de referência"],
+    ["T3","Recurso ordinário trabalhista",null,2500.00,""],
+    ["T4","Execução trabalhista",15,2000.00,""],
+    ["T5","Acordo trabalhista extrajudicial",10,1500.00,""]
+  ],
+  "Previdenciário": [
+    ["P1","Benefício previdenciário (atrasados)",30,3500.00,"Prática: 25% a 40% sobre atrasados"],
+    ["P2","Aposentadoria / revisão de benefício",30,3500.00,""],
+    ["P3","Auxílio-doença / BPC / LOAS",30,2500.00,""],
+    ["P4","Recurso administrativo INSS",null,1500.00,""]
+  ],
+  "Criminal": [
+    ["CR1","Defesa criminal (rito ordinário)",null,5000.00,"Por fase ou global"],
+    ["CR2","Tribunal do Júri (até pronúncia)",null,4000.00,""],
+    ["CR3","Tribunal do Júri (plenário)",null,8000.00,""],
+    ["CR4","Habeas corpus",null,3500.00,""],
+    ["CR5","Recurso criminal / apelação",null,3000.00,""]
+  ],
+  "Atividades Avulsas / Consultoria": [
+    ["A1","Consulta verbal (horário comercial)",null,350.00,"Atual mercado ~R$ 500-700"],
+    ["A2","Consulta com exame de documentos",null,750.00,""],
+    ["A3","Hora técnica / intelectual",null,564.00,"Atual ~R$ 200-800/h"],
+    ["A4","Parecer simples",null,1113.00,""],
+    ["A5","Parecer complexo",10,3339.00,""],
+    ["A6","Elaboração de contrato / minuta",2,2000.00,"Sobre valor do negócio"],
+    ["A7","Notificação extrajudicial",null,800.00,""],
+    ["A8","Mediação / conciliação extrajudicial",10,2000.00,""]
+  ],
+  "Empresarial / Consumidor / Outros": [
+    ["E1","Ação de direito do consumidor",20,2500.00,""],
+    ["E2","Recuperação judicial / falência (devedor)",4,6780.95,"2% a 6% do passivo"],
+    ["E3","Habilitação de crédito em falência",10,968.71,""],
+    ["E4","Assessoria societária",null,3000.00,""],
+    ["E5","Compliance / LGPD",null,5000.00,"Valor de mercado"],
+    ["E6","Direito digital / proteção de dados",null,4000.00,""]
+  ]
+};
+const SERVICOS = [];
+for (const [categoria, itens] of Object.entries(TABELA)) {
+  for (const [item, servico, percentual, minimo, observacao] of itens) {
+    SERVICOS.push({ id: SERVICOS.length, categoria, item, servico, percentual, minimo, observacao, label: `[${categoria}] ${servico}` });
+  }
+}
+const CLAUSULAS_MODELO = (valor, parcelamento) => `CLÁUSULA DE HONORÁRIOS (MODELO SUGESTIVO)
+
+1. DOS HONORÁRIOS
+O CONTRATANTE pagará ao CONTRATADO os honorários advocatícios no valor de ${brl(valor)}, referentes aos serviços descritos neste contrato.
+
+2. FORMA DE PAGAMENTO
+Os honorários serão pagos da seguinte forma:
+${parcelamento}
+
+3. REAJUSTE
+Os valores serão atualizados pelo IPCA ou índice oficial que o substitua, a partir do vencimento de cada parcela.
+
+4. SUCUMBÊNCIA
+Os honorários de sucumbência pertencem exclusivamente ao advogado (art. 23 da Lei 8.906/94) e não excluem nem compensam os honorários contratados.
+
+5. DESPESAS
+Custas processuais, emolumentos, deslocamentos, cópias e demais despesas necessárias correrão por conta do CONTRATANTE, mediante prestação de contas.
+
+6. RESCISÃO
+Em caso de rescisão antecipada por iniciativa do CONTRATANTE, serão devidos os honorários proporcionais aos serviços já prestados, observado o mínimo ético da tabela da OAB.
+
+Observação: Modelo genérico. Adapte às particularidades do caso e da seccional da OAB.
+`;
+
+/* ===================== UTIL ===================== */
+const $ = id => document.getElementById(id);
+const fmtBRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const brl = v => fmtBRL.format(isFinite(v) ? v : 0).replace(/ /g, ' ');
+const pct = v => v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+const num = (id, def = 0) => { const v = parseFloat($(id).value); return isFinite(v) ? v : def; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function download(name, text, mime = 'text/plain;charset=utf-8') {
+  const blob = new Blob([text], { type: mime });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const stamp = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`; };
+let fator = FATOR_CORRECAO_2016_2026;
+
+/* ===================== NAVEGAÇÃO ===================== */
+const PAGES = [
+  ['p-calc', '🧮', 'Calculadora Principal'],
+  ['p-hora', '⏱️', 'Custo Real da Hora'],
+  ['p-cen', '⚖️', 'Comparar Cenários'],
+  ['p-suc', '📜', 'Sucumbência (art. 85 CPC)'],
+  ['p-tab', '📋', 'Tabela Completa'],
+  ['p-cla', '✍️', 'Cláusulas Contratuais'],
+  ['p-sobre', 'ℹ️', 'Sobre']
+];
+function goto(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === id));
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.id === id));
+  $('navMobile').value = id;
+  if (location.hash !== '#' + id.slice(2)) history.replaceState(null, '', '#' + id.slice(2));
+  window.scrollTo({ top: 0 });
+}
+$('nav').innerHTML = PAGES.map(([id, ic, t]) => `<button data-id="${id}"><span>${ic}</span>${t}</button>`).join('');
+$('navMobile').innerHTML = PAGES.map(([id, , t]) => `<option value="${id}">${t}</option>`).join('');
+$('nav').addEventListener('click', e => { const b = e.target.closest('button'); if (b) goto(b.dataset.id); });
+$('navMobile').addEventListener('change', e => goto(e.target.value));
+
+function setCorrecao(on) {
+  fator = on ? FATOR_CORRECAO_2016_2026 : 1;
+  $('corr').checked = on; $('corrMobile').checked = on;
+  $('fatorLbl').textContent = fator.toFixed(2).replace('.', ',');
+  calc(); renderTabela();
+}
+$('corr').addEventListener('change', e => setCorrecao(e.target.checked));
+$('corrMobile').addEventListener('change', e => setCorrecao(e.target.checked));
+
+/* ===================== CALCULADORA PRINCIPAL ===================== */
+const MODELOS = ['Tabela OAB (mínimo)', 'Percentual sobre base', 'Valor fixo', 'Por hora técnica', 'Êxito (success fee)', 'Misto (fixo + êxito)'];
+let modelo = MODELOS[0];
+$('modelos').innerHTML = MODELOS.map(m => `<button data-m="${m}">${m}</button>`).join('');
+$('modelos').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; modelo = b.dataset.m; renderModeloFields(); calc(); });
+
+$('cat').innerHTML = ['Todas', ...Object.keys(TABELA)].map(c => `<option>${esc(c)}</option>`).join('');
+function filtrarServicos() {
+  const cat = $('cat').value, q = $('busca').value.trim().toLowerCase();
+  let ops = SERVICOS;
+  if (cat !== 'Todas') ops = ops.filter(s => s.categoria === cat);
+  if (q) ops = ops.filter(s => s.servico.toLowerCase().includes(q) || s.categoria.toLowerCase().includes(q));
+  const prev = $('serv').value;
+  $('serv').innerHTML = ops.length ? ops.map(s => `<option value="${s.id}">${esc(s.label)}</option>`).join('') : '<option value="">Nenhum serviço encontrado</option>';
+  if (ops.some(s => String(s.id) === prev)) $('serv').value = prev;
+  renderModeloFields(); calc();
+}
+$('cat').addEventListener('change', filtrarServicos);
+$('busca').addEventListener('input', filtrarServicos);
+$('serv').addEventListener('change', () => { renderModeloFields(); calc(); });
+
+const servAtual = () => SERVICOS[parseInt($('serv').value, 10)] || null;
+
+function rangeField(id, label, min, max, step, val) {
+  return `<div class="field"><label>${label}</label><div class="range-row"><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}"><output id="${id}_o"></output></div></div>`;
+}
+function numField(id, label, min, step, val) {
+  return `<div class="field"><label for="${id}">${label}</label><input type="number" id="${id}" min="${min}" step="${step}" value="${val}"></div>`;
+}
+let horaSugerida = null;
+function renderModeloFields() {
+  const s = servAtual(); const minTab = s ? s.minimo * fator : 0;
+  let h = '';
+  if (modelo === 'Percentual sobre base') h = rangeField('m_pct', 'Percentual (%)', 1, 40, 0.5, s && s.percentual ? s.percentual : 20);
+  else if (modelo === 'Valor fixo') h = numField('m_fixo', 'Valor fixo contratado (R$)', 0, 100, minTab.toFixed(2));
+  else if (modelo === 'Por hora técnica') h = numField('m_horas', 'Horas estimadas', 0.5, 0.5, 10) + numField('m_vh', 'Valor da hora (R$)', 50, 10, horaSugerida ? horaSugerida.toFixed(2) : 400);
+  else if (modelo === 'Êxito (success fee)') h = rangeField('m_exito', 'Percentual de êxito (%)', 5, 40, 0.5, 20) + '<div class="note info">Cobrado apenas em caso de êxito.</div>';
+  else if (modelo === 'Misto (fixo + êxito)') h = numField('m_mfixo', 'Valor fixo (R$)', 0, 100, (minTab * 0.5).toFixed(2)) + rangeField('m_mexito', '% de êxito sobre o resultado', 5, 30, 0.5, 15);
+  $('modeloFields').innerHTML = h;
+  document.querySelectorAll('#modelos button').forEach(b => b.classList.toggle('active', b.dataset.m === modelo));
+}
+$('modeloFields').addEventListener('input', calc);
+['valorBase', 'complex', 'forma', 'nParc'].forEach(id => $(id).addEventListener('input', calc));
+$('forma').addEventListener('change', calc);
+
+let ultimo = null;
+function calc() {
+  document.querySelectorAll('input[type=range]').forEach(r => { const o = $(r.id + '_o'); if (o) o.textContent = r.id.startsWith('h_') ? r.value + '%' : pct(+r.value); });
+  const s = servAtual();
+  if (!s) { $('resValor').textContent = '—'; $('detalhe').innerHTML = ''; $('parcelas').innerHTML = ''; ultimo = null; return; }
+  const minTab = s.minimo * fator, percTab = s.percentual, base = num('valorBase');
+  let vf = 0, det = [];
+  if (modelo === 'Tabela OAB (mínimo)') {
+    if (percTab != null && base > 0) { const vp = base * percTab / 100; vf = Math.max(vp, minTab); det = [['Percentual tabela', pct(percTab)], ['Valor %', brl(vp)], ['Mínimo', brl(minTab)]]; }
+    else { vf = minTab; det = [['Base', 'Valor mínimo da tabela']]; }
+  } else if (modelo === 'Percentual sobre base') {
+    const p = num('m_pct', 20); vf = base * p / 100; det = [['Percentual', pct(p)], ['Base', brl(base)]];
+  } else if (modelo === 'Valor fixo') {
+    vf = num('m_fixo'); det = [['Tipo', 'Valor fixo']];
+  } else if (modelo === 'Por hora técnica') {
+    const hrs = num('m_horas', 10), vh = num('m_vh', 400); vf = hrs * vh; det = [['Horas', hrs.toLocaleString('pt-BR')], ['Valor/hora', brl(vh)]];
+  } else if (modelo === 'Êxito (success fee)') {
+    const pe = num('m_exito', 20); vf = base * pe / 100; det = [['% êxito', pct(pe)], ['Base', brl(base)]];
+  } else {
+    const fx = num('m_mfixo'), pe = num('m_mexito', 15), ve = base * pe / 100; vf = fx + ve; det = [['Fixo', brl(fx)], ['% êxito', pct(pe)], ['Valor êxito', brl(ve)]];
+  }
+  const cSel = $('complex'), mult = parseFloat(cSel.value), complexidade = cSel.options[cSel.selectedIndex].text;
+  vf *= mult;
+
+  $('resValor').textContent = brl(vf);
+  $('resSub').textContent = `${modelo} · ${complexidade}`;
+  const rows = [['Serviço', s.servico], ['Categoria', s.categoria], ['Mínimo tabela (ajustado)', brl(minTab)], ...det];
+  $('detalhe').innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
+  $('obs').innerHTML = s.observacao ? `<div class="note info">${esc(s.observacao)}</div>` : '';
+
+  const forma = $('forma').value; let parc = [], parcTxt = '';
+  $('nParcWrap').hidden = forma !== 'Personalizado';
+  if (forma === '1/3 + 1/3 + 1/3') { const t = vf / 3; parc = [['Início', t], ['Até 1º grau', t], ['Final', t]]; parcTxt = `Início ${brl(t)} | 1º grau ${brl(t)} | Final ${brl(t)}`; }
+  else if (forma === '50% início + 50% final') { const m = vf / 2; parc = [['Início', m], ['Final', m]]; parcTxt = `Início ${brl(m)} | Final ${brl(m)}`; }
+  else if (forma === '30% + 40% + 30%') { parc = [['Entrada 30%', vf * .3], ['Intermediária 40%', vf * .4], ['Final 30%', vf * .3]]; parcTxt = `30% ${brl(vf*.3)} | 40% ${brl(vf*.4)} | 30% ${brl(vf*.3)}`; }
+  else if (forma === 'À vista') { parc = [['À vista', vf]]; parcTxt = `À vista ${brl(vf)}`; }
+  else { const n = Math.min(24, Math.max(2, Math.round(num('nParc', 3)))); parc = [[`${n}x de`, vf / n]]; parcTxt = `${n}x de ${brl(vf / n)}`; }
+  $('parcelas').innerHTML = parc.map(([k, v]) => `<li><span>${k}</span><b>${brl(v)}</b></li>`).join('');
+
+  ultimo = { 'Modelo': modelo, 'Serviço': s.servico, 'Categoria': s.categoria, 'Valor base': brl(base), 'Complexidade': complexidade, 'Honorários': brl(vf), 'Parcelamento': forma, 'Detalhe': parcTxt };
+}
+
+$('btnTxt').addEventListener('click', () => {
+  if (!ultimo) return;
+  const u = ultimo;
+  download('proposta_honorarios.txt', `PROPOSTA\nServiço: ${u['Serviço']}\nModelo: ${u['Modelo']}\nBase: ${u['Valor base']}\nHonorários: ${u['Honorários']}\n${u['Parcelamento']}: ${u['Detalhe']}\n`);
+});
+$('btnPdf').addEventListener('click', () => {
+  if (!ultimo) return;
+  if (!window.jspdf) { alert('Gerador de PDF ainda carregando. Tente novamente em instantes.'); return; }
+  const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth(), M = 18, usable = W - 2 * M; let y = 22;
+  doc.setFillColor(20, 40, 75); doc.rect(0, 0, W, 8, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(20, 40, 75);
+  doc.text('Proposta de Honorários Advocatícios', W / 2, y, { align: 'center' }); y += 7;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90, 100, 117);
+  doc.text('Data: ' + new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }), W / 2, y, { align: 'center' }); y += 12;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(20, 40, 75); doc.text('Dados do cálculo', M, y); y += 7;
+  doc.setFontSize(10);
+  for (const [k, v] of Object.entries(ultimo)) {
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(27, 35, 51); doc.text(k + ':', M, y);
+    doc.setFont('helvetica', 'normal');
+    const lines = doc.splitTextToSize(String(v), usable - 38); doc.text(lines, M + 38, y); y += 6 * lines.length;
+  }
+  y += 6; doc.setDrawColor(184, 137, 59); doc.line(M, y, W - M, y); y += 7;
+  doc.setFontSize(9); doc.setTextColor(90, 100, 117);
+  doc.text(doc.splitTextToSize('Valores orientativos com base na tabela OAB e critérios de mercado. Formalize sempre por contrato escrito (art. 41 do Código de Ética da OAB). Honorários de sucumbência pertencem ao advogado e não excluem os contratados.', usable), M, y);
+  doc.save(`proposta_${stamp()}.pdf`);
+});
+
+/* ===================== CUSTO REAL DA HORA ===================== */
+function calcHora() {
+  const total = ['h_aluguel', 'h_soft', 'h_oab', 'h_cont', 'h_out', 'h_pro'].reduce((a, id) => a + num(id), 0);
+  const horasFat = num('h_horas', 160) * num('h_pct', 55) / 100;
+  const custo = horasFat ? total / horasFat : 0, preco = custo * (1 + num('h_margem', 20) / 100);
+  $('h_pct_o').textContent = $('h_pct').value + '%'; $('h_margem_o').textContent = $('h_margem').value + '%';
+  $('h_custo').textContent = brl(custo); $('h_preco').textContent = brl(preco);
+  $('h_total').textContent = brl(total); $('h_fat').textContent = Math.round(horasFat) + 'h';
+  return preco;
+}
+document.querySelectorAll('.h-in').forEach(i => i.addEventListener('input', calcHora));
+$('usarHora').addEventListener('click', () => { horaSugerida = calcHora(); modelo = 'Por hora técnica'; renderModeloFields(); calc(); goto('p-calc'); });
+
+/* ===================== CENÁRIOS ===================== */
+const TIPOS = ['Percentual', 'Fixo', 'Hora', 'Êxito', 'Misto'];
+const cenTipos = ['Percentual', 'Fixo', 'Hora'];
+function cenFields(i, t) {
+  const f = (id, label, min, max, step, val) => `<div class="field"><label>${label}</label><input type="number" data-k="${id}" min="${min}" ${max != null ? `max="${max}"` : ''} step="${step}" value="${val}"></div>`;
+  if (t === 'Percentual') return f('p', '%', 1, 40, 0.5, 20);
+  if (t === 'Fixo') return f('f', 'Valor (R$)', 0, null, 100, 5000);
+  if (t === 'Hora') return f('h', 'Horas', 1, null, 1, 20) + f('vh', 'R$/hora', 50, null, 10, 400);
+  if (t === 'Êxito') return f('e', '% êxito', 5, 40, 0.5, 25);
+  return f('mx', 'Fixo (R$)', 0, null, 100, 3000) + f('me', '% êxito', 5, 30, 0.5, 15);
+}
+function renderCenarios() {
+  $('cenarios').innerHTML = cenTipos.map((t, i) => `<div class="card scen" data-i="${i}"><h3>Cenário ${i + 1}</h3>
+    <div class="field"><label>Tipo</label><select data-tipo>${TIPOS.map(x => `<option ${x === t ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+    <div data-fields>${cenFields(i, t)}</div><div class="metric"><span>Total</span><b data-total>—</b></div></div>`).join('');
+  calcCenarios();
+}
+function calcCenarios() {
+  const base = num('cenBase'); const res = [];
+  document.querySelectorAll('.scen').forEach((card, i) => {
+    const t = card.querySelector('[data-tipo]').value;
+    const g = k => { const el = card.querySelector(`[data-k="${k}"]`); const v = el ? parseFloat(el.value) : 0; return isFinite(v) ? v : 0; };
+    let v = t === 'Percentual' ? base * g('p') / 100 : t === 'Fixo' ? g('f') : t === 'Hora' ? g('h') * g('vh') : t === 'Êxito' ? base * g('e') / 100 : g('mx') + base * g('me') / 100;
+    card.querySelector('[data-total]').textContent = brl(v);
+    res.push({ c: `Cenário ${i + 1}`, t, v, card });
+  });
+  const best = res.reduce((a, b) => b.v > a.v ? b : a, res[0]);
+  res.forEach(r => r.card.classList.toggle('best', r === best));
+  $('cenTable').innerHTML = res.map(r => `<tr><td>${r.c}</td><td>${r.t}</td><td class="num">${brl(r.v)}</td></tr>`).join('');
+  $('cenMelhor').innerHTML = `Maior valor: <b>${best.c}</b> (${best.t}) → <b>${brl(best.v)}</b>`;
+}
+$('cenarios').addEventListener('change', e => {
+  if (e.target.matches('[data-tipo]')) { const card = e.target.closest('.scen'); cenTipos[+card.dataset.i] = e.target.value; card.querySelector('[data-fields]').innerHTML = cenFields(+card.dataset.i, e.target.value); }
+  calcCenarios();
+});
+$('cenarios').addEventListener('input', calcCenarios);
+$('cenBase').addEventListener('input', calcCenarios);
+
+/* ===================== SUCUMBÊNCIA ===================== */
+function calcSuc() {
+  const base = num('sucBase'); let f = num('sucPct', 15);
+  $('sucPctO').textContent = pct(f);
+  if ($('sucMaj').checked) f = Math.min(f + 5, 25);
+  $('sucValor').textContent = brl(base * f / 100);
+  $('sucSub').textContent = `${pct(f)} sobre ${brl(base)}`;
+}
+['sucBase', 'sucPct', 'sucMaj'].forEach(id => $(id).addEventListener('input', calcSuc));
+
+/* ===================== TABELA ===================== */
+function renderTabela() {
+  $('tabCaption').textContent = fator !== 1 ? `Valores base 2016 × fator ${fator.toFixed(2).replace('.', ',')}` : 'Valores base 2016';
+  const open = new Set([...document.querySelectorAll('#tabela details[open]')].map(d => d.dataset.c));
+  if (!document.querySelector('#tabela details')) open.add('Parte Geral');
+  $('tabela').innerHTML = Object.entries(TABELA).map(([cat, itens]) => `<details data-c="${esc(cat)}" ${open.has(cat) ? 'open' : ''}><summary>${esc(cat)} <span class="muted" style="margin-left:auto;margin-right:.6rem">${itens.length} itens</span></summary>
+    <div class="table-wrap"><table><thead><tr><th>Item</th><th>Serviço</th><th>Percentual</th><th style="text-align:right">Mínimo (R$)</th><th>Observação</th></tr></thead><tbody>
+    ${itens.map(([it, sv, p, m, o]) => `<tr><td>${it}</td><td>${esc(sv)}</td><td>${p ? p + '%' : '–'}</td><td class="num">${brl(m * fator)}</td><td class="muted">${esc(o)}</td></tr>`).join('')}
+    </tbody></table></div></details>`).join('');
+}
+
+/* ===================== CLÁUSULAS ===================== */
+function calcCla() { $('claTexto').value = CLAUSULAS_MODELO(num('claValor'), $('claParc').value); }
+['claValor', 'claParc'].forEach(id => $(id).addEventListener('input', calcCla));
+$('claTxt').addEventListener('click', () => download('clausulas_honorarios.txt', $('claTexto').value));
+$('claCopy').addEventListener('click', async e => {
+  try { await navigator.clipboard.writeText($('claTexto').value); e.target.textContent = 'Copiado!'; }
+  catch { $('claTexto').select(); document.execCommand('copy'); e.target.textContent = 'Copiado!'; }
+  setTimeout(() => e.target.textContent = 'Copiar texto', 1500);
+});
+
+/* ===================== INIT ===================== */
+filtrarServicos(); calcHora(); renderCenarios(); calcSuc(); renderTabela(); calcCla();
+const inicial = PAGES.find(p => p[0] === 'p-' + location.hash.slice(1));
+goto(inicial ? inicial[0] : 'p-calc');
+</script>
+</body>
+</html>
